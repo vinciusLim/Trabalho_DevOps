@@ -59,11 +59,11 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_KEY }}
           script: |
-            cd ~/app
+            cd /home/ec2-user/app
 
             # Atualizar docker-compose.prod.yml vindo do repositório
             rm -f docker-compose.prod.yml
-            cat << 'EOF' > docker-compose.prod.yml
+            cat << EOF > docker-compose.prod.yml
             version: '3.9'
 
             services:
@@ -75,9 +75,9 @@ jobs:
                   - "5000:5000"
                 environment:
                   DB_HOST: db
-                  DB_USER: ${MYSQL_USER}
-                  DB_PASSWORD: ${MYSQL_PASSWORD}
-                  DB_NAME: ${MYSQL_DATABASE}
+                  DB_USER: ${{ secrets.MYSQL_USER }}
+                  DB_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+                  DB_NAME: ${{ secrets.MYSQL_DATABASE }}
                 depends_on:
                   - db
                 networks:
@@ -88,10 +88,10 @@ jobs:
                 container_name: trabalho-devops-db
                 restart: always
                 environment:
-                  MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-                  MYSQL_DATABASE: ${MYSQL_DATABASE}
-                  MYSQL_USER: ${MYSQL_USER}
-                  MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+                  MYSQL_ROOT_PASSWORD: "${{ secrets.MYSQL_PASSWORD }}"
+                  MYSQL_DATABASE: "${{ secrets.MYSQL_DATABASE }}"
+                  MYSQL_USER: "${{ secrets.MYSQL_USER }}"
+                  MYSQL_PASSWORD: "${{ secrets.MYSQL_ROOT_PASSWORD }}"
                 volumes:
                   - prod_db_data:/var/lib/mysql
                 networks:
