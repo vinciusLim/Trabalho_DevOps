@@ -1,5 +1,8 @@
 version: '3.9'
 
+env_file:
+  - .env
+
 services:
   app:
     image: ${DOCKER_HUB_USER}/trabalho-devops:${DOCKER_IMAGE_TAG}
