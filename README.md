@@ -39,5 +39,37 @@ Senha: a definida em `MYSQL_PASSWORD` no `.env`.
 - O banco usa volume persistente (`db_data`) e rede `app_network`.
 - O `init.sql` cria o banco `usersdb` e o usuário `app_user`.
 
----
 
+
+## CI/CD
+
+
+1. [![CI/CD - Flask + Docker + EC2](https://github.com/vinciusLim/Trabalho_DevOps/actions/workflows/cicd.yml/badge.svg)](https://github.com/vinciusLim/Trabalho_DevOps/actions/workflows/cicd.yml)
+
+2. 
+O pipeline roda automaticamente a cada push na main e executa:
+
+Testes – instala dependências e roda os testes unitários.
+
+Build – cria uma nova imagem Docker e envia para o Docker Hub com a tag do commit.
+
+Deploy – conecta via SSH ao servidor, roda git pull, atualiza a imagem e reinicia o docker compose.
+
+Esse processo garante que cada mudança na main é testada e implantada automaticamente em produção.
+
+3.
+![alt text](image.png)
+
+4. 
+Passos Manuais no Servidor
+
+Realizados apenas uma vez:
+
+Clonar o repositório no EC2.
+
+Criar o arquivo .env com as variáveis de produção (não vai para o GitHub).
+
+Garantir que Docker e Docker Compose estejam instalados.
+
+Depois disso, o deploy é totalmente automático pelo GitHub Actions.
+---
