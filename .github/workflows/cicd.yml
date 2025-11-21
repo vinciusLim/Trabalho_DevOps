@@ -27,6 +27,10 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
+      # 3.5. Garantir que o Python enxergue a pasta app/
+      - name: Adicionar projeto ao PYTHONPATH
+        run: echo "PYTHONPATH=$(pwd)" >> $GITHUB_ENV
+
       # 4. Roda testes unitários
       - name: Rodar testes
         run: pytest
