@@ -20,38 +20,38 @@ jobs:
         with:
           python-version: "3.10"
 
-      # 3. Instala dependências (necessário para testes)
+      # 3. Instala dependências
       - name: Instalar dependências
         working-directory: ./app
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      # 3.5. Garantir que o Python enxergue a pasta app/
+      # 4. Adiciona projeto ao PYTHONPATH
       - name: Adicionar projeto ao PYTHONPATH
         run: echo "PYTHONPATH=$(pwd)" >> $GITHUB_ENV
 
-      # 4. Roda testes unitários
+      # 5. Roda testes unitários
       - name: Rodar testes
         run: pytest
 
-      # 5. Logar no DockerHub
+      # 6. Logar no DockerHub
       - name: Login no DockerHub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          username: ${{ secrets.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 6. Build + Push da imagem Docker
+      # 7. Build + Push da imagem Docker
       - name: Build e Push da imagem
         uses: docker/build-push-action@v5
         with:
           context: ./app
           file: ./app/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/trabalho-devops:latest
+          tags: ${{ secrets.DOCKER_HUB_USER }}/trabalho-devops:${{ secrets.DOCKER_IMAGE_TAG }}
 
-      # 7. Deploy na EC2 via SSH
+      # 8. Deploy na EC2 via SSH
       - name: Deploy na EC2
         uses: appleboy/ssh-action@v1.0.0
         with:
@@ -61,23 +61,23 @@ jobs:
           script: |
             cd /home/ec2-user/app
 
-            # Atualizar docker-compose.prod.yml vindo do repositório
+            # Atualizar docker-compose.prod.yml
             rm -f docker-compose.prod.yml
             cat << EOF > docker-compose.prod.yml
             version: '3.9'
 
             services:
               app:
-                image: ${{ secrets.DOCKERHUB_USERNAME }}/trabalho-devops:latest
+                image: ${DOCKER_HUB_USER}/trabalho-devops:${DOCKER_IMAGE_TAG}
                 container_name: trabalho-devops-app
                 restart: always
                 ports:
                   - "5000:5000"
                 environment:
                   DB_HOST: db
-                  DB_USER: ${{ secrets.MYSQL_USER }}
-                  DB_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
-                  DB_NAME: ${{ secrets.MYSQL_DATABASE }}
+                  DB_USER: ${MYSQL_USER}
+                  DB_PASSWORD: ${MYSQL_PASSWORD}
+                  DB_NAME: ${MYSQL_DATABASE}
                 depends_on:
                   - db
                 networks:
@@ -88,12 +88,13 @@ jobs:
                 container_name: trabalho-devops-db
                 restart: always
                 environment:
-                  MYSQL_ROOT_PASSWORD: "${{ secrets.MYSQL_PASSWORD }}"
-                  MYSQL_DATABASE: "${{ secrets.MYSQL_DATABASE }}"
-                  MYSQL_USER: "${{ secrets.MYSQL_USER }}"
-                  MYSQL_PASSWORD: "${{ secrets.MYSQL_ROOT_PASSWORD }}"
+                  MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+                  MYSQL_DATABASE: ${MYSQL_DATABASE}
+                  MYSQL_USER: ${MYSQL_USER}
+                  MYSQL_PASSWORD: ${MYSQL_PASSWORD}
                 volumes:
                   - prod_db_data:/var/lib/mysql
+                  - ./init.sql:/docker-entrypoint-initdb.d/init.sql
                 networks:
                   - backend
 
@@ -106,7 +107,7 @@ jobs:
             EOF
 
             # Puxar última imagem
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/trabalho-devops:latest
+            docker pull ${DOCKER_HUB_USER}/trabalho-devops:${DOCKER_IMAGE_TAG}
 
             # Subir containers
             docker-compose -f docker-compose.prod.yml down
