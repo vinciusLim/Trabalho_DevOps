@@ -1,4 +1,4 @@
-name: CI - Testes Unitários
+name: CI/CD - Flask + Docker + EC2
 
 on:
   push:
@@ -6,25 +6,104 @@ on:
   pull_request:
 
 jobs:
-  tests:
+  ci-cd:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Clona o repositório
       - name: Checkout do código
         uses: actions/checkout@v3
 
+      # 2. Configura o Python para rodar testes
       - name: Configurar Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.10"
 
+      # 3. Instala dependências (necessário para testes)
       - name: Instalar dependências
+        working-directory: ./app
         run: |
           pip install --upgrade pip
-          pip install -r app/requirements.txt
+          pip install -r requirements.txt
 
-      - name: Ajustar PYTHONPATH
-        run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)" >> $GITHUB_ENV
-
+      # 4. Roda testes unitários
       - name: Rodar testes
-        run: pytest
+        run: pytest tests/
+
+      # 5. Logar no DockerHub
+      - name: Login no DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 6. Build + Push da imagem Docker
+      - name: Build e Push da imagem
+        uses: docker/build-push-action@v5
+        with:
+          context: ./app
+          file: ./app/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/trabalho-devops:latest
+
+      # 7. Deploy na EC2 via SSH
+      - name: Deploy na EC2
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            cd ~/app
+
+            # Atualizar docker-compose.prod.yml vindo do repositório
+            rm -f docker-compose.prod.yml
+            cat << 'EOF' > docker-compose.prod.yml
+            version: '3.9'
+
+            services:
+              app:
+                image: ${{ secrets.DOCKERHUB_USERNAME }}/trabalho-devops:latest
+                container_name: trabalho-devops-app
+                restart: always
+                ports:
+                  - "5000:5000"
+                environment:
+                  DB_HOST: db
+                  DB_USER: ${MYSQL_USER}
+                  DB_PASSWORD: ${MYSQL_PASSWORD}
+                  DB_NAME: ${MYSQL_DATABASE}
+                depends_on:
+                  - db
+                networks:
+                  - backend
+
+              db:
+                image: mysql:8.0
+                container_name: trabalho-devops-db
+                restart: always
+                environment:
+                  MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+                  MYSQL_DATABASE: ${MYSQL_DATABASE}
+                  MYSQL_USER: ${MYSQL_USER}
+                  MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+                volumes:
+                  - prod_db_data:/var/lib/mysql
+                networks:
+                  - backend
+
+            volumes:
+              prod_db_data:
+
+            networks:
+              backend:
+                driver: bridge
+            EOF
+
+            # Puxar última imagem
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/trabalho-devops:latest
+
+            # Subir containers
+            docker-compose -f docker-compose.prod.yml down
+            docker-compose -f docker-compose.prod.yml up -d
