@@ -88,10 +88,10 @@ jobs:
                 container_name: trabalho-devops-db
                 restart: always
                 environment:
-                  MYSQL_ROOT_PASSWORD: "${{ secrets.MYSQL_PASSWORD }}"
+                  MYSQL_ROOT_PASSWORD: "${{ secrets.MYSQL_ROOT_PASSWORD }}"
                   MYSQL_DATABASE: "${{ secrets.MYSQL_DATABASE }}"
                   MYSQL_USER: "${{ secrets.MYSQL_USER }}"
-                  MYSQL_PASSWORD: "${{ secrets.MYSQL_ROOT_PASSWORD }}"
+                  MYSQL_PASSWORD: "${{ secrets.MYSQL_PASSWORD }}"
                 volumes:
                   - prod_db_data:/var/lib/mysql
                 networks:

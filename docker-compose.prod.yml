@@ -1,6 +1,3 @@
-env_file:
-  - .env
-
 services:
   app:
     image: ${DOCKER_HUB_USER}/trabalho-devops:${DOCKER_IMAGE_TAG}
@@ -10,9 +7,9 @@ services:
       - "5000:5000"
     environment:
       DB_HOST: db
-      DB_USER: ${MYSQL_USER}
-      DB_PASSWORD: ${MYSQL_PASSWORD}
-      DB_NAME: ${MYSQL_DATABASE}
+      DB_USER: ${{ secrets.MYSQL_USER }}
+      DB_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+      DB_NAME: ${{ secrets.MYSQL_DATABASE }}
     depends_on:
       - db
     networks:
