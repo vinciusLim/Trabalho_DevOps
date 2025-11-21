@@ -29,7 +29,7 @@ jobs:
 
       # 4. Roda testes unitários
       - name: Rodar testes
-        run: pytest tests/
+        run: pytest
 
       # 5. Logar no DockerHub
       - name: Login no DockerHub
